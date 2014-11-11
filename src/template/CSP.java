@@ -195,8 +195,7 @@ public class CSP{
 	}
 	
 	public double computeCost(Encode neighbor, List<Vehicle> vehicles, TaskSet tasks){
-		double costTask = 0;
-		double costVehicle = 0;
+
 		double cost = 0;
 		
 		cAction firstAct, nextAct;
@@ -206,23 +205,22 @@ public class CSP{
 			firstAct = neighbor.firstActions.get(v);
 			cost = cost + v.getCurrentCity().distanceTo(firstAct.task.pickupCity) * v.costPerKm();
 			
-			nextAct = neighbor.nextActions.get(firstAct);
-			currentCity = firstAct.task.pickupCity;
+			nextAct = neighbor.nextActions.get(firstAct);					// next action of first action
+			currentCity = firstAct.task.pickupCity;							// set current city to first city
 			
 			while(nextAct != null){
-				if (nextAct.type == 0){   				// next action is pickup
+				if (nextAct.type == 0){   									// next action is pickup
 					cost = cost + currentCity.distanceTo(nextAct.task.pickupCity) * v.costPerKm();
 					currentCity = nextAct.task.pickupCity;
 					nextAct = neighbor.nextActions.get(nextAct);
 				}
-				else{									// next action is delivery
+				else{														// next action is delivery
 					cost = cost + currentCity.distanceTo(nextAct.task.deliveryCity) * v.costPerKm();
 					currentCity = nextAct.task.deliveryCity;
 					nextAct = neighbor.nextActions.get(nextAct);
 				}
 			}
 		}
-		
 		return cost;
 	}
 	public List<Plan> computePlan(Encode optimalA, List<Vehicle> vehicles, TaskSet tasks){
@@ -238,7 +236,7 @@ public class CSP{
 			plan.appendMove(firstAct.task.pickupCity);								// move to first city
 			plan.appendPickup(firstAct.task);
 			
-			nextAct = optimalA.nextActions.get(firstAct);
+			nextAct = optimalA.nextActions.get(firstAct);							// next action of first action
 			
 			while(nextAct != null){
 				
