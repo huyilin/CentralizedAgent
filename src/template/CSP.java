@@ -68,7 +68,7 @@ public class CSP{
 		return aEncode;
 	}
 	
-	public Encode SLS(List<Vehicle> vehicles, Encode aVector){
+	public Encode SLS(List<Vehicle> vehicles, Encode aVector, TaskSet tasks){
 		Encode aOld, aNew;
 		HashSet <Encode> newNeighbors = new HashSet<Encode>();
 		aNew = aVector;
@@ -77,7 +77,7 @@ public class CSP{
 		while(iteration <= 10000){
 			aOld = aNew;
 			newNeighbors = ChooseNeighbors(vehicles, aOld);
-			aNew = LocalChoice(newNeighbors, vehicles);
+			aNew = LocalChoice(newNeighbors, vehicles, tasks);
 			
 			iteration++;
 		}
@@ -135,18 +135,18 @@ public class CSP{
 		return aSet;
 	}
 	
-	public Encode LocalChoice(HashSet<Encode> aSet, List<Vehicle> vehicles){
+	public Encode LocalChoice(HashSet<Encode> aSet, List<Vehicle> vehicles, TaskSet tasks){
 		
-		int optimalCost = 0;
-		int tempCost;
+		double optimalCost = 0;
+		double tempCost;
 		Encode optimal;
 		for(Encode neighbor : aSet) {  
-			optimalCost = computeCost(neighbor, vehicles);	          // set the first neighbor as the optimal solution	
+			optimalCost = computeCost(neighbor, vehicles, tasks);	          // set the first neighbor as the optimal solution	
 			break;
 		}
 		
 		for(Encode neighbor : aSet) {                         // compute the optimal cost and optimal solution 
-			tempCost = computeCost(neighbor, vehicles);
+			tempCost = computeCost(neighbor, vehicles, tasks);
 			if (optimalCost >= tempCost){
 				optimalCost = tempCost;
 				optimal = neighbor;
@@ -192,16 +192,24 @@ public class CSP{
 		
 	}
 	
-	public int computeCost(Encode neighbor, List<Vehicle> vehicles){
-		int costTask;
-		int costVehicle;
-		City city ;
+	public double computeCost(Encode neighbor, List<Vehicle> vehicles, TaskSet tasks){
+		double costTask = 0;
+		double costVehicle = 0;
+		
+		for (Task t : tasks){
+			double v1dist = 0;
+			double v2len = 0;
+			
+			v1dist = neighbor.nextActions.get(t).task.pickupCity.distanceTo(neighbor.nextActions.get(t).task.deliveryCity);
+			v2len = neighbor.
+		}
 		
 		for (Vehicle v : vehicles){
 			double v1dist = 0;
 			double v2len = 0;
 			v1dist = v.getCurrentCity().distanceTo(neighbor.firstActions.get(v).task.pickupCity);
-			v2len = neighbor.firstActions.get(v).
+			v2len = neighbor.firstActions.get(v).task.pickupCity.distanceTo(neighbor.firstActions.get(v).task.deliveryCity);
+			costVehicle = costVehicle + (v1dist + v2len) * v.costPerKm();
 		}
 		
 		return (costTask + costVehicle);
@@ -212,6 +220,5 @@ public class CSP{
 	
 	public void UpdateTime(){
 		
-	}
 	}
 }
