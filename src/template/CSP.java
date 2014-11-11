@@ -221,4 +221,38 @@ public class CSP{
 	public void UpdateTime(){
 		
 	}
+	
+	public boolean Overload(Encode pendingA, List<Vehicle> vehicles){
+		
+		cAction firstAct, nextAct;
+		int remainingCapacity;
+		
+		for (Vehicle v : vehicles){			
+			firstAct = pendingA.firstActions.get(v);
+			
+			if (firstAct == null)
+				break;
+			
+			remainingCapacity = v.capacity() - firstAct.task.weight;	    // capacity after first action
+			
+			if (remainingCapacity < 0)										// overload happens
+				return true;
+			
+			nextAct = pendingA.nextActions.get(firstAct);					
+			while (nextAct != null){										// examine a vehicle's capacity
+
+				if (pendingA.nextActions.get(firstAct).type == 0)           	// next action is pickup
+					remainingCapacity = remainingCapacity - nextAct.task.weight;
+				else															// next action is delivery
+					remainingCapacity = remainingCapacity + nextAct.task.weight;
+				
+				
+				if (remainingCapacity < 0)									// overload happens
+					return true;
+				else
+					nextAct = pendingA.nextActions.get(nextAct);				
+			}
+		}
+		return false;
+	}
 }
