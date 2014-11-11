@@ -139,7 +139,7 @@ public class CSP{
 		
 		double optimalCost = 0;
 		double tempCost;
-		Encode optimal;
+		Encode optimal = null;
 		for(Encode neighbor : aSet) {  
 			optimalCost = computeCost(neighbor, vehicles, tasks);	          // set the first neighbor as the optimal solution	
 			break;
@@ -184,8 +184,10 @@ public class CSP{
 			changed.nextActions.put(p1, p2);
 			changed.nextActions.put(p2, aVector.firstActions.get(vj));
 		}
-		UpdateTime();
-		UpdateTime();
+//		UpdateTime();
+//		UpdateTime();
+		
+		return changed;
 	}
 	
 	public Encode ChangingTaskOrder(Encode aVector, Vehicle v, int id1, int id2){
@@ -195,34 +197,72 @@ public class CSP{
 	public double computeCost(Encode neighbor, List<Vehicle> vehicles, TaskSet tasks){
 		double costTask = 0;
 		double costVehicle = 0;
+		double cost = 0;
 		
-		for (Task t : tasks){
-			double v1dist = 0;
-			double v2len = 0;
-			
-			v1dist = neighbor.nextActions.get(t).task.pickupCity.distanceTo(neighbor.nextActions.get(t).task.deliveryCity);
-			v2len = neighbor.
-		}
+		cAction firstAct, nextAct;
+		City currentCity;
 		
 		for (Vehicle v : vehicles){
-			double v1dist = 0;
-			double v2len = 0;
-			v1dist = v.getCurrentCity().distanceTo(neighbor.firstActions.get(v).task.pickupCity);
-			v2len = neighbor.firstActions.get(v).task.pickupCity.distanceTo(neighbor.firstActions.get(v).task.deliveryCity);
-			costVehicle = costVehicle + (v1dist + v2len) * v.costPerKm();
+			firstAct = neighbor.firstActions.get(v);
+			cost = cost + v.getCurrentCity().distanceTo(firstAct.task.pickupCity) * v.costPerKm();
+			
+			nextAct = neighbor.nextActions.get(firstAct);
+			currentCity = firstAct.task.pickupCity;
+			
+			while(nextAct != null){
+				if (nextAct.type == 0){   				// next action is pickup
+					cost = cost + currentCity.distanceTo(nextAct.task.pickupCity) * v.costPerKm();
+					currentCity = nextAct.task.pickupCity;
+					nextAct = neighbor.nextActions.get(nextAct);
+				}
+				else{									// next action is delivery
+					cost = cost + currentCity.distanceTo(nextAct.task.deliveryCity) * v.costPerKm();
+					currentCity = nextAct.task.deliveryCity;
+					nextAct = neighbor.nextActions.get(nextAct);
+				}
+			}
 		}
 		
-		return (costTask + costVehicle);
+		return cost;
 	}
-	public Encode computePlan(astarVector){
+	public List<Plan> computePlan(Encode optimalA, List<Vehicle> vehicles, TaskSet tasks){
 		
+		List<Plan> plans = new ArrayList<Plan>();
+
+		for (Vehicle v : vehicles){
+			City current = v.getCurrentCity();
+			Plan plan = new Plan(current);
+			cAction firstAct, nextAct;
+			
+			firstAct = optimalA.firstActions.get(v);
+			plan.appendMove(firstAct.task.pickupCity);								// move to first city
+			plan.appendPickup(firstAct.task);
+			
+			nextAct = optimalA.nextActions.get(firstAct);
+			
+			while(nextAct != null){
+				
+				if (nextAct.type == 0){       										// next action is pickup
+					plan.appendMove(nextAct.task.pickupCity);
+					plan.appendPickup(nextAct.task);
+					nextAct = optimalA.nextActions.get(nextAct);
+				}
+				else{																// next action is delivery
+					plan.appendMove(nextAct.task.deliveryCity);
+					plan.appendDelivery(nextAct.task);
+					nextAct = optimalA.nextActions.get(nextAct);
+				}
+			}
+			plans.add(plan);
+		}
+		return plans;
 	}
 	
 	public void UpdateTime(){
 		
 	}
 	
-	public boolean Overload(Encode pendingA, List<Vehicle> vehicles){
+	public boolean Overload(Encode pendingA, List<Vehicle> vehicles){       // capacity < 0 returns true
 		
 		cAction firstAct, nextAct;
 		int remainingCapacity;
