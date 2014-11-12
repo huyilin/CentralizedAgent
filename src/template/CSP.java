@@ -116,6 +116,7 @@ public class CSP{
 				Task t = aVector.firstActions.get(currentVehicle).task;
 				if (t.weight <= v.capacity()) {
 					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
+					displayEncode(aChangeV);
 					aSet.add(aChangeV);
 				}
 			}
@@ -378,5 +379,18 @@ public class CSP{
 				nextAct = pendingA.nextActions.get(nextAct);				
 		}
 		return false;
+	}
+	
+	
+	public void displayEncode(Encode encode ) {
+		for(Vehicle v : this.vehicles) {
+			cAction a = encode.firstActions.get(v);
+			while (a != null) {
+				System.out.print("task" + a.task.id + "----->");
+				a = encode.nextActions.get(a);
+			}
+			System.out.println("new line");
+		}
+		System.out.println("new line");
 	}
 }
