@@ -63,8 +63,7 @@ public class CSP{
 			aEncode.carriedBy.put(act_delivery, v);
 		}
 		
-		aEncode.nextActions.put(act_delivery, null);		
-		
+		aEncode.nextActions.put(act_delivery, null);
 		return aEncode;
 	}
 	
@@ -77,6 +76,7 @@ public class CSP{
 		while(iteration <= 10000){
 			aOld = aNew;
 			newNeighbors = ChooseNeighbors(aOld);
+			
 			aNew = LocalChoice(newNeighbors, vehicles, tasks);
 			iteration++;
 		}
@@ -116,8 +116,10 @@ public class CSP{
 				Task t = aVector.firstActions.get(currentVehicle).task;
 				if (t.weight <= v.capacity()) {
 					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
-					displayEncode(aChangeV);
-					aSet.add(aChangeV);
+					if(aChangeV != null) {
+						displayEncode(aChangeV);
+						aSet.add(aChangeV);			
+					}
 				}
 			}
 		}
@@ -128,8 +130,12 @@ public class CSP{
 					if(actionList.get(id2).task.equals(actionList.get(id1).task)) {
 						break;
 					} 
-					Encode aChangeT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
-					aSet.add(aChangeT);			
+					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
+					if(aChangedT != null) {
+//						displayEncode(aChangedT);
+						aSet.add(aChangedT);			
+					}
+
 				}
 			}
 		}
@@ -165,7 +171,7 @@ public class CSP{
 		if(aVector.nextActions.get(p1).task.equals(p1.task)) {
 			cAction d1 = aVector.nextActions.get(p1);
 			cAction p2 = aVector.nextActions.get(d1);
-			changed.firstActions.put(vi, aVector.nextActions.get(p2));
+			changed.firstActions.put(vi, aVector.nextActions.get(cost = cost + v.getCurrentCity().distanceTo(firstAct.task.pickupCity) * v.costPerKm();p2));
 			changed.nextActions.put(d1, aVector.firstActions.get(vj));
 			changed.firstActions.put(vj, p1);
 		} else {
@@ -385,12 +391,13 @@ public class CSP{
 	public void displayEncode(Encode encode ) {
 		for(Vehicle v : this.vehicles) {
 			cAction a = encode.firstActions.get(v);
+			System.out.print("vehicle" + v.id() + ":" );
 			while (a != null) {
 				System.out.print("task" + a.task.id + "----->");
 				a = encode.nextActions.get(a);
 			}
-			System.out.println("new line");
+			System.out.println("");
 		}
-		System.out.println("new line");
+		System.out.println("");
 	}
 }
