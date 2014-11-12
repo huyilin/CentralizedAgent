@@ -30,7 +30,7 @@ public class CSP{
 		cAction act_delivery = new cAction();
 		int count = 0;
 		cAction temp = new cAction();
-		
+		Vehicle v = vehicles.get(0);
 		for(Task task : tasks) {
 			act_pickup = new cAction();
 			act_delivery = new cAction();
@@ -40,7 +40,11 @@ public class CSP{
 			act_delivery.task = task;
 			act_delivery.type = 1;
 			
-			aEncode.nextActions.put(act_pickup, act_delivery);						// next action of pickup is delivery
+			if(aEncode.firstActions.get(v) != null) {
+				aEncode.firstActions.put(v, act_pickup);
+			}
+			
+			aEncode.nextActions.put(act_pickup, act_delivery);					// next action of pickup is delivery
 			
 			if(temp.task != null) {
 				aEncode.nextActions.put(temp, act_pickup); 	// Store last loop's delivery with this loops's pickup 
@@ -50,7 +54,7 @@ public class CSP{
 			temp.task = task;
 			temp.type = 1;
 			
-			aEncode.firstActions.put(vehicles.get(0), act_pickup);		// action is assigned to vehicle using round robin
+					// all actions are assigned to one vehicle
 			
 			aEncode.Time.put(act_pickup,2*count + 1);			// time sequence for pickup task
 			aEncode.Time.put(act_delivery,2*count + 2);			// time sequence for delivery task = corresponding pickup + 1
@@ -58,8 +62,9 @@ public class CSP{
 			
 			aEncode.carriedBy.put(act_pickup, vehicles.get(0));
 		}
-		aEncode.nextActions.put(act_delivery, null);
-				
+		
+		
+		aEncode.nextActions.put(act_delivery, null);		
 		return aEncode;
 	}
 	
@@ -71,15 +76,15 @@ public class CSP{
 		
 		while(iteration <= 10000){
 			aOld = aNew;
-			newNeighbors = ChooseNeighbors(vehicles, aOld);
+			newNeighbors = ChooseNeighbors(aOld);
 			aNew = LocalChoice(newNeighbors, vehicles, tasks);
 			
 			iteration++;
 		}
-		
 		return aNew; 
 	}
-	public HashSet<Encode> ChooseNeighbors(List<Vehicle> vehicles, Encode aVector){
+	
+	public HashSet<Encode> ChooseNeighbors(Encode aVector){
 		HashSet<Encode> aSet = new HashSet<Encode>();
 
 		int randomInt;
@@ -98,6 +103,7 @@ public class CSP{
 				break;
 			}
 		}
+		
 		for (Vehicle v : vehicles) {
 			if (!v.equals(currentVehicle) ) {
 				t = aVector.firstActions.get(currentVehicle).task;

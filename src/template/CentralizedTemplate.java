@@ -41,35 +41,11 @@ public class CentralizedTemplate implements CentralizedBehavior {
 	@Override
 	public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) {
 		
-		
 //		System.out.println("Agent " + agent.id() + " has tasks " + tasks);
 		CSP csp = new CSP(vehicles, tasks);
 		Encode Aold = csp.Initialize();
 		Encode Aoptimal = csp.SLS(Aold);
-		List<Plan> optimalPlans = csp.computePlan(Aoptimal);
+		List<Plan> optimalPlans = csp.computePlan(Aoptimal);		
 		return optimalPlans;
-	}
-
-	private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
-		City current = vehicle.getCurrentCity();
-		Plan plan = new Plan(current);
-
-		for (Task task : tasks) {
-			// move: current city => pickup location
-			for (City city : current.pathTo(task.pickupCity))
-				plan.appendMove(city);
-
-			plan.appendPickup(task);
-
-			// move: pickup location => delivery location
-			for (City city : task.path())
-				plan.appendMove(city);
-
-			plan.appendDelivery(task);
-
-			// set current city
-			current = task.deliveryCity;
-		}
-		return plan;
 	}
 }
