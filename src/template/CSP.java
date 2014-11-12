@@ -59,7 +59,6 @@ public class CSP{
 				aEncode.firstActions.put(v, act_pickup);
 			}
 			
-			
 			aEncode.nextActions.put(act_pickup, act_delivery);					// next action of pickup is delivery
 			
 			if(temp.task != null) {
@@ -128,14 +127,14 @@ public class CSP{
 				if (t.weight <= v.capacity()) {
 					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
 					if(aChangeV != null) {
-						displayEncode(aChangeV);
+//						displayEncode(aChangeV);
 						aSet.add(aChangeV);			
 					}
 				}
 			}
 		}
 		
-		System.out.println("Finished change vehicle");
+//		System.out.println("Finished change vehicle");
 		
 		if (actionList.size() >= 2){
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
@@ -145,7 +144,7 @@ public class CSP{
 					} 
 					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
 					if(aChangedT != null) {
-						displayEncode(aChangedT);
+//						displayEncode(aChangedT);
 						aSet.add(aChangedT);			
 					}
 
@@ -273,7 +272,12 @@ public class CSP{
 		cAction a2 = actionList.get(id2);
 		cAction a1Post = actionList.get(id1 + 1);
 		cAction a2Pre = actionList.get(id2 - 1);
-		cAction a2Post = actionList.get(id2 + 1);
+		cAction a2Post;
+		if(id2 == actionList.size() - 1 ){
+			a2Post = null;
+		} else {
+			a2Post = actionList.get(id2 + 1);
+		}
 		
 		if(id1 + 1 == id2) {
 			if(id1 == 0) {
@@ -306,26 +310,20 @@ public class CSP{
 	
 	public double computeCost(Encode neighbor, List<Vehicle> vehicles, TaskSet tasks){
 
-		double cost = 0;
-		
-		cAction firstAct, nextAct;
-		City currentCity;
+		double cost = 0;		
 		
 		for (Vehicle v : vehicles){
-			firstAct = neighbor.firstActions.get(v);
-			cost = cost + v.getCurrentCity().distanceTo(firstAct.task.pickupCity) * v.costPerKm();
 			
-			nextAct = neighbor.nextActions.get(firstAct);					// next action of first action
-			currentCity = firstAct.task.pickupCity;							// set current city to first city
-			
-			while(nextAct != null){
-				if (nextAct.type == 0){   									// next action is pickup
+			cAction nextAct = neighbor.firstActions.get(v);			
+			City currentCity = v.getCurrentCity();
+			while(nextAct != null) {
+				if (nextAct.type == 0){   									// next action is pickup				
 					cost = cost + currentCity.distanceTo(nextAct.task.pickupCity) * v.costPerKm();
 					currentCity = nextAct.task.pickupCity;
 					nextAct = neighbor.nextActions.get(nextAct);
 				}
 				else{														// next action is delivery
-					cost = cost + currentCity.distanceTo(nextAct.task.deliveryCity) * v.costPerKm();
+					cost = cost + currentCity.distanceTo(nextAct.task.deliveryCity) * v.costPerKm();			
 					currentCity = nextAct.task.deliveryCity;
 					nextAct = neighbor.nextActions.get(nextAct);
 				}
@@ -387,15 +385,15 @@ public class CSP{
 			return true;
 		
 		nextAct = pendingA.nextActions.get(firstAct);					
-		while (nextAct != null){										// examine a vehicle's capacity
-			if (pendingA.nextActions.get(firstAct).type == 0)           	// next action is pickup
+		while (nextAct != null) {										// examine a vehicle's capacity
+			if (nextAct.type == 0)           	// next action is pickup
 				remainingCapacity = remainingCapacity - nextAct.task.weight;
 			else															// next action is delivery
 				remainingCapacity = remainingCapacity + nextAct.task.weight;
 			if (remainingCapacity < 0)									// overload happens
 				return true;
 			else
-				nextAct = pendingA.nextActions.get(nextAct);				
+				nextAct = pendingA.nextActions.get(nextAct);
 		}
 		return false;
 	}
