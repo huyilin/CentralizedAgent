@@ -31,6 +31,7 @@ public class CSP{
 		int count = 0;
 		cAction temp = new cAction();
 		Vehicle v = vehicles.get(0);
+		
 		for(Task task : tasks) {
 			act_pickup = new cAction();
 			act_delivery = new cAction();
@@ -40,7 +41,7 @@ public class CSP{
 			act_delivery.task = task;
 			act_delivery.type = 1;
 			
-			if(aEncode.firstActions.get(v) != null) {
+			if(aEncode.firstActions.get(v) == null) {
 				aEncode.firstActions.put(v, act_pickup);
 			}
 			
@@ -60,9 +61,9 @@ public class CSP{
 			aEncode.Time.put(act_delivery,2*count + 2);			// time sequence for delivery task = corresponding pickup + 1
 			count++;
 			
-			aEncode.carriedBy.put(act_pickup, vehicles.get(0));
+			aEncode.carriedBy.put(act_pickup, v);
+			aEncode.carriedBy.put(act_delivery, v);
 		}
-		
 		
 		aEncode.nextActions.put(act_delivery, null);		
 		return aEncode;
@@ -78,60 +79,52 @@ public class CSP{
 			aOld = aNew;
 			newNeighbors = ChooseNeighbors(aOld);
 			aNew = LocalChoice(newNeighbors, vehicles, tasks);
-			
 			iteration++;
 		}
 		return aNew; 
 	}
 	
 	public HashSet<Encode> ChooseNeighbors(Encode aVector){
-		HashSet<Encode> aSet = new HashSet<Encode>();
-
-		int randomInt;
-		Task t;
-		Encode aChangeV, aChangeT;
-		int length;
-		Vehicle currentVehicle;
 		
+		HashSet<Encode> aSet = new HashSet<Encode>();
+		Vehicle currentVehicle;
 		List<cAction> actionList = new ArrayList<cAction>();
 		
 		while(true) {
 			Random randomGenerator = new Random();
-			randomInt = randomGenerator.nextInt(vehicles.size());
+			int randomInt = randomGenerator.nextInt(vehicles.size());
 			currentVehicle = vehicles.get(randomInt);
 			if (aVector.firstActions.get(currentVehicle) != null){
 				break;
 			}
 		}
 		
+		cAction action = aVector.firstActions.get(currentVehicle);
+		actionList.add(action);
+		
+		while (action != null){
+			action = aVector.nextActions.get(action);
+			actionList.add(action);
+			System.out.println(action.task);
+		}
+		
 		for (Vehicle v : vehicles) {
 			if (!v.equals(currentVehicle) ) {
-				t = aVector.firstActions.get(currentVehicle).task;
+				Task t = aVector.firstActions.get(currentVehicle).task;
 				if (t.weight <= v.capacity()) {
-					aChangeV = ChangeVehicle(aVector, currentVehicle, v);
+					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
 					aSet.add(aChangeV);
 				}
 			}
 		}
 		
-		length = 0;
-		
-		cAction a = aVector.firstActions.get(currentVehicle);
-		actionList.add(aVector.firstActions.get(currentVehicle));
-		
-		while (a != null){
-			a = aVector.nextActions.get(a);
-			actionList.add(a);
-			length++;
-		}
-		
-		if (length >= 2){
+		if (actionList.size() >= 2){
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
 				for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
 					if(actionList.get(id2).task.equals(actionList.get(id1).task)) {
 						break;
 					} 
-					aChangeT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
+					Encode aChangeT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
 					aSet.add(aChangeT);			
 				}
 			}
@@ -166,27 +159,28 @@ public class CSP{
 		cAction p1 = aVector.firstActions.get(vi); //get vi's first Action
 		
 		if(aVector.nextActions.get(p1).task.equals(p1.task)) {
-			cAction p2 = aVector.nextActions.get(p1);
+			cAction d1 = aVector.nextActions.get(p1);
+			cAction p2 = aVector.nextActions.get(d1);
 			changed.firstActions.put(vi, aVector.nextActions.get(p2));
-			changed.nextActions.put(p2, aVector.firstActions.get(vj));
+			changed.nextActions.put(d1, aVector.firstActions.get(vj));
 			changed.firstActions.put(vj, p1);
 		} else {
-			cAction p2 = p1;
-			cAction p2Pre = p1;
+			cAction d1 = p1;
+			cAction d1Pre = p1;
 			
 			while (true) {
-				p2 = aVector.nextActions.get(p2Pre);
-				if(p2.task.equals(p1.task)) {
+				d1 = aVector.nextActions.get(d1Pre);
+				if(d1.task.equals(p1.task)) {
 					break;
 				} else {
-					p2Pre = p2;
+					d1Pre = d1;
 				}
 			}
 			changed.firstActions.put(vi, aVector.nextActions.get(p1));
-			changed.nextActions.put(p2Pre, aVector.nextActions.get(p2));
+			changed.nextActions.put(d1Pre, aVector.nextActions.get(d1));
 			changed.firstActions.put(vj, p1);
-			changed.nextActions.put(p1, p2);
-			changed.nextActions.put(p2, aVector.firstActions.get(vj));
+			changed.nextActions.put(p1, d1);
+			changed.nextActions.put(d1, aVector.firstActions.get(vj));
 		}
 //		UpdateTime();
 //		UpdateTime();
@@ -249,7 +243,7 @@ public class CSP{
 	}
 	
 	
-	private Encode ChangeOrder(Encode aVector, Vehicle v, int id1, int id2, List<cAction> actionList) {
+	public Encode ChangeOrder(Encode aVector, Vehicle v, int id1, int id2, List<cAction> actionList) {
 		
 		Encode reEncode = new Encode(aVector);
 		cAction a1 = actionList.get(id1);
