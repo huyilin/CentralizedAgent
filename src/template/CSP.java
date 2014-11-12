@@ -99,13 +99,17 @@ public class CSP{
 		}
 		
 		cAction action = aVector.firstActions.get(currentVehicle);
-		actionList.add(action);
 		
 		while (action != null){
-			action = aVector.nextActions.get(action);
 			actionList.add(action);
-//			System.out.println(action.task);
+			action = aVector.nextActions.get(action);
 		}
+		
+		for(cAction a: actionList) {
+			System.out.println(a.task);
+		}
+		
+		System.out.println("here");
 		
 		for (Vehicle v : vehicles) {
 			if (!v.equals(currentVehicle) ) {

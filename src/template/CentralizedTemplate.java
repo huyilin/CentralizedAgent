@@ -45,12 +45,6 @@ public class CentralizedTemplate implements CentralizedBehavior {
 		Encode Aold = csp.Initialize();
 		
 		cAction action = Aold.firstActions.get(vehicles.get(0));
-		System.out.println("here");
-		
-		while (action != null){
-			System.out.println(action.task);
-			action = Aold.nextActions.get(action);
-		}
 		
 		Encode Aoptimal = csp.SLS(Aold);
 		List<Plan> optimalPlans = csp.computePlan(Aoptimal);		
