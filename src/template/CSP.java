@@ -30,9 +30,13 @@ public class CSP{
 		cAction act_delivery = new cAction();
 		int count = 0;
 		cAction temp = new cAction();
-		Vehicle v = vehicles.get(0);
+		
+		int id = 0;
+		Vehicle v = vehicles.get(id);
+		int capacity = v.capacity();
 		
 		for(Task task : tasks) {
+			
 			act_pickup = new cAction();
 			act_delivery = new cAction();
 			
@@ -41,9 +45,20 @@ public class CSP{
 			act_delivery.task = task;
 			act_delivery.type = 1;
 			
+			if(capacity - task.weight < 0) {
+				id ++;
+				v = vehicles.get(id);
+				capacity = v.capacity();
+				aEncode.nextActions.put(temp, null);
+				temp = new cAction();
+			} else {
+				capacity -= task.weight;
+			}
+			
 			if(aEncode.firstActions.get(v) == null) {
 				aEncode.firstActions.put(v, act_pickup);
 			}
+			
 			
 			aEncode.nextActions.put(act_pickup, act_delivery);					// next action of pickup is delivery
 			
@@ -53,7 +68,7 @@ public class CSP{
 			
 			temp = act_delivery;
 			
-					// all actions are assigned to one vehicle
+			// all actions are assigned to one vehicle
 			
 			aEncode.Time.put(act_pickup,2*count + 1);			// time sequence for pickup task
 			aEncode.Time.put(act_delivery,2*count + 2);			// time sequence for delivery task = corresponding pickup + 1
@@ -105,11 +120,7 @@ public class CSP{
 			action = aVector.nextActions.get(action);
 		}
 		
-		for(cAction a: actionList) {
-			System.out.println(a.task);
-		}
-		
-		System.out.println("here");
+
 		
 		for (Vehicle v : vehicles) {
 			if (!v.equals(currentVehicle) ) {
@@ -124,6 +135,8 @@ public class CSP{
 			}
 		}
 		
+		System.out.println("Finished change vehicle");
+		
 		if (actionList.size() >= 2){
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
 				for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
@@ -132,7 +145,7 @@ public class CSP{
 					} 
 					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
 					if(aChangedT != null) {
-//						displayEncode(aChangedT);
+						displayEncode(aChangedT);
 						aSet.add(aChangedT);			
 					}
 
@@ -171,7 +184,7 @@ public class CSP{
 		if(aVector.nextActions.get(p1).task.equals(p1.task)) {
 			cAction d1 = aVector.nextActions.get(p1);
 			cAction p2 = aVector.nextActions.get(d1);
-			changed.firstActions.put(vi, aVector.nextActions.get(cost = cost + v.getCurrentCity().distanceTo(firstAct.task.pickupCity) * v.costPerKm();p2));
+			changed.firstActions.put(vi, p2);
 			changed.nextActions.put(d1, aVector.firstActions.get(vj));
 			changed.firstActions.put(vj, p1);
 		} else {
@@ -393,7 +406,11 @@ public class CSP{
 			cAction a = encode.firstActions.get(v);
 			System.out.print("vehicle" + v.id() + ":" );
 			while (a != null) {
-				System.out.print("task" + a.task.id + "----->");
+				if(a.type == PICKUP) {
+					System.out.print("p" + a.task.id + "----->");	
+				} else {
+					System.out.print("d" + a.task.id + "----->");	
+				}
 				a = encode.nextActions.get(a);
 			}
 			System.out.println("");
