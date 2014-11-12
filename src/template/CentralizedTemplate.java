@@ -41,9 +41,17 @@ public class CentralizedTemplate implements CentralizedBehavior {
 	@Override
 	public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) {
 		
-//		System.out.println("Agent " + agent.id() + " has tasks " + tasks);
 		CSP csp = new CSP(vehicles, tasks);
 		Encode Aold = csp.Initialize();
+		
+		cAction action = Aold.firstActions.get(vehicles.get(0));
+		System.out.println("here");
+		
+		while (action != null){
+			System.out.println(action.task);
+			action = Aold.nextActions.get(action);
+		}
+		
 		Encode Aoptimal = csp.SLS(Aold);
 		List<Plan> optimalPlans = csp.computePlan(Aoptimal);		
 		return optimalPlans;

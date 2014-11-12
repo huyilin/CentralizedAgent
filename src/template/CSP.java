@@ -51,9 +51,7 @@ public class CSP{
 				aEncode.nextActions.put(temp, act_pickup); 	// Store last loop's delivery with this loops's pickup 
 			}
 			
-			temp = new cAction();
-			temp.task = task;
-			temp.type = 1;
+			temp = act_delivery;
 			
 					// all actions are assigned to one vehicle
 			
@@ -66,6 +64,7 @@ public class CSP{
 		}
 		
 		aEncode.nextActions.put(act_delivery, null);		
+		
 		return aEncode;
 	}
 	
@@ -105,7 +104,7 @@ public class CSP{
 		while (action != null){
 			action = aVector.nextActions.get(action);
 			actionList.add(action);
-			System.out.println(action.task);
+//			System.out.println(action.task);
 		}
 		
 		for (Vehicle v : vehicles) {
