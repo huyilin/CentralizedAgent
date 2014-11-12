@@ -43,16 +43,11 @@ public class CentralizedTemplate implements CentralizedBehavior {
 		
 		
 //		System.out.println("Agent " + agent.id() + " has tasks " + tasks);
-		csp = new CSP(vehicles, tasks, topology);
-
-		Plan planVehicle1 = naivePlan(vehicles.get(0), tasks);
-
-		List<Plan> plans = new ArrayList<Plan>();
-		plans.add(planVehicle1);
-		while (plans.size() < vehicles.size())
-			plans.add(Plan.EMPTY);
-
-		return plans;
+		CSP csp = new CSP(vehicles, tasks);
+		Encode Aold = csp.Initialize();
+		Encode Aoptimal = csp.SLS(Aold);
+		List<Plan> optimalPlans = csp.computePlan(Aoptimal);
+		return optimalPlans;
 	}
 
 	private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {

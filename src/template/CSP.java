@@ -9,31 +9,26 @@ import logist.simulation.Vehicle;
 import logist.task.TaskSet;
 import logist.task.Task;
 import logist.plan.Plan;
-import logist.topology.Topology;
 import logist.topology.Topology.City;
-import logist.simulation.Vehicle;
 
 public class CSP{
 	
-	public void CSP(List<Vehicle> vehicles, TaskSet tasks, Topology topology){
-		
+	
+	public static final int PICKUP = 0;
+	public static final int DELIVERY = 1;
+	private List<Vehicle> vehicles; 
+	private TaskSet tasks;
+	
+	public CSP(List<Vehicle> vehicles, TaskSet tasks) {
+		this.vehicles = vehicles;
+		this.tasks = tasks;
 	}
 	
-	public Encode Initialize(List<Vehicle> vehicles, TaskSet tasks){
-		Plan initA;
-		List<Plan> plan = new ArrayList<Plan>();
+	public Encode Initialize(){
 		Encode aEncode = new Encode();
 		cAction act_pickup;
-		cAction act_delivery;
-		
-		City current;
-		
-		
+		cAction act_delivery = new cAction();
 		int count = 0;
-
-		
-		
-		
 		cAction temp = new cAction();
 		
 		for(Task task : tasks) {
@@ -68,7 +63,7 @@ public class CSP{
 		return aEncode;
 	}
 	
-	public Encode SLS(List<Vehicle> vehicles, Encode aVector, TaskSet tasks){
+	public Encode SLS(Encode aVector){
 		Encode aOld, aNew;
 		HashSet <Encode> newNeighbors = new HashSet<Encode>();
 		aNew = aVector;
@@ -107,7 +102,7 @@ public class CSP{
 			if (!v.equals(currentVehicle) ) {
 				t = aVector.firstActions.get(currentVehicle).task;
 				if (t.weight <= v.capacity()) {
-					aChangeV = ChangingVehicle(aVector, currentVehicle, v);
+					aChangeV = ChangeVehicle(aVector, currentVehicle, v);
 					aSet.add(aChangeV);
 				}
 			}
@@ -127,8 +122,11 @@ public class CSP{
 		if (length >= 2){
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
 				for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
-					aChangeT = ChangingTaskOrder(aVector, currentVehicle, id1, id2);
-					aSet.add(aChangeT);
+					if(actionList.get(id2).task.equals(actionList.get(id1).task)) {
+						break;
+					} 
+					aChangeT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
+					aSet.add(aChangeT);			
 				}
 			}
 		}
@@ -156,7 +154,7 @@ public class CSP{
 		
 	}
 	
-	public Encode ChangingVehicle(Encode aVector, Vehicle vi, Vehicle vj){
+	public Encode ChangeVehicle(Encode aVector, Vehicle vi, Vehicle vj){
 		
 		Encode changed = new Encode(aVector);
 		cAction p1 = aVector.firstActions.get(vi); //get vi's first Action
@@ -190,8 +188,97 @@ public class CSP{
 		return changed;
 	}
 	
-	public Encode ChangingTaskOrder(Encode aVector, Vehicle v, int id1, int id2){
+	public Encode ChangeTaskOrder(Encode aVector, Vehicle v, int id1, int id2, List<cAction> actionList) {
+		/*Situation 1*/
+		cAction a1 = actionList.get(id1);
+		cAction a2 = actionList.get(id2);
+		Encode reEncode;
 		
+		if(a1.type == PICKUP && a2.type == PICKUP) {
+			reEncode = ChangeOrder(aVector, v, id1, id2, actionList);
+			if(a2.task.weight > a1.task.weight) {
+				if(this.overload(reEncode, v)) {
+					return null;
+				} 
+			} 
+			return reEncode;
+		}	
+		
+		/*Situation 2*/
+		else if(a1.type == PICKUP && a2.type == DELIVERY) {
+			for(int i = id1 + 1; i <= id2; i++) {
+				if(actionList.get(i).task.equals(a1.task)) {
+					return null;
+				}
+			}
+			reEncode = ChangeOrder(aVector, v, id1, id2, actionList);
+			return reEncode;
+		}
+		
+		/*Situation 3*/
+		else if(a1.type == DELIVERY && a2.type == PICKUP) {
+			reEncode = ChangeOrder(aVector, v, id1, id2, actionList);
+			if(this.overload(reEncode, v)) {
+				return null;
+			} 
+			return reEncode;
+		}	
+		
+		/*Situation 4*/		
+		else if(a1.type == DELIVERY && a2.type == DELIVERY) {
+			for(int i = id1; i < id2; i++) {
+				if(actionList.get(i).task.equals(a2.task)) {
+					return null;
+				}
+			}
+			reEncode = ChangeOrder(aVector, v, id1, id2, actionList);
+			if(a2.task.weight < a1.task.weight) {
+				if(this.overload(reEncode, v)) {
+					return null;
+				}
+			} 
+			return reEncode;
+		} 
+		return null;
+	}
+	
+	
+	private Encode ChangeOrder(Encode aVector, Vehicle v, int id1, int id2, List<cAction> actionList) {
+		
+		Encode reEncode = new Encode(aVector);
+		cAction a1 = actionList.get(id1);
+		cAction a2 = actionList.get(id2);
+		cAction a1Post = actionList.get(id1 + 1);
+		cAction a2Pre = actionList.get(id2 - 1);
+		cAction a2Post = actionList.get(id2 + 1);
+		
+		if(id1 + 1 == id2) {
+			if(id1 == 0) {
+				reEncode.firstActions.put(v, a2);
+				reEncode.nextActions.put(a2, a1);
+				reEncode.nextActions.put(a1, a2Post);
+			} else {
+				cAction a1Pre = actionList.get(id1 -1);
+				reEncode.nextActions.put(a1Pre, a2);
+				reEncode.nextActions.put(a2, a1);
+				reEncode.nextActions.put(a1, a2Post);
+			} 
+		} else{
+			if(id1 == 0) {
+				reEncode.firstActions.put(v, a2);
+				reEncode.nextActions.put(a2, a1Post);
+				reEncode.nextActions.put(a2Pre, a1);
+				reEncode.nextActions.put(a1, a2Post);
+			} else {
+				cAction a1Pre = actionList.get(id1 -1);
+				reEncode.nextActions.put(a1Pre, a2);
+				reEncode.nextActions.put(a2, a1Post);
+				reEncode.nextActions.put(a2Pre, a1);
+				reEncode.nextActions.put(a1, a2Post);
+			}
+		}
+	
+		return reEncode;
 	}
 	
 	public double computeCost(Encode neighbor, List<Vehicle> vehicles, TaskSet tasks){
@@ -223,7 +310,8 @@ public class CSP{
 		}
 		return cost;
 	}
-	public List<Plan> computePlan(Encode optimalA, List<Vehicle> vehicles, TaskSet tasks){
+	
+	public List<Plan> computePlan(Encode optimalA){
 		
 		List<Plan> plans = new ArrayList<Plan>();
 
@@ -260,36 +348,31 @@ public class CSP{
 		
 	}
 	
-	public boolean Overload(Encode pendingA, List<Vehicle> vehicles){       // capacity < 0 returns true
+	public boolean overload(Encode pendingA, Vehicle v){       // capacity < 0 returns true
 		
 		cAction firstAct, nextAct;
 		int remainingCapacity;
+			
+		firstAct = pendingA.firstActions.get(v);
 		
-		for (Vehicle v : vehicles){			
-			firstAct = pendingA.firstActions.get(v);
-			
-			if (firstAct == null)
-				break;
-			
-			remainingCapacity = v.capacity() - firstAct.task.weight;	    // capacity after first action
-			
-			if (remainingCapacity < 0)										// overload happens
+		if (firstAct == null)
+			return false;
+		
+		remainingCapacity = v.capacity() - firstAct.task.weight;	    // capacity after first action
+		
+		if (remainingCapacity < 0)										// overload happens
+			return true;
+		
+		nextAct = pendingA.nextActions.get(firstAct);					
+		while (nextAct != null){										// examine a vehicle's capacity
+			if (pendingA.nextActions.get(firstAct).type == 0)           	// next action is pickup
+				remainingCapacity = remainingCapacity - nextAct.task.weight;
+			else															// next action is delivery
+				remainingCapacity = remainingCapacity + nextAct.task.weight;
+			if (remainingCapacity < 0)									// overload happens
 				return true;
-			
-			nextAct = pendingA.nextActions.get(firstAct);					
-			while (nextAct != null){										// examine a vehicle's capacity
-
-				if (pendingA.nextActions.get(firstAct).type == 0)           	// next action is pickup
-					remainingCapacity = remainingCapacity - nextAct.task.weight;
-				else															// next action is delivery
-					remainingCapacity = remainingCapacity + nextAct.task.weight;
-				
-				
-				if (remainingCapacity < 0)									// overload happens
-					return true;
-				else
-					nextAct = pendingA.nextActions.get(nextAct);				
-			}
+			else
+				nextAct = pendingA.nextActions.get(nextAct);				
 		}
 		return false;
 	}
