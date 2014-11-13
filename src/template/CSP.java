@@ -1,6 +1,7 @@
 package template;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Random;
@@ -25,59 +26,86 @@ public class CSP{
 	}
 	
 	public Encode Initialize(){
-		Encode aEncode = new Encode();
-		cAction act_pickup;
-		cAction act_delivery = new cAction();
-		int count = 0;
-		cAction temp = new cAction();
 		
-		int id = 0;
-		Vehicle v = vehicles.get(id);
-		int capacity = v.capacity();
+		HashSet<Task> picked = new HashSet<Task> ();
+		HashMap<Vehicle, Integer> capacities= new HashMap<Vehicle, Integer> ();
+		HashMap<Vehicle, cAction> lastAction = new HashMap<Vehicle, cAction> ();
+		Encode aEncode = new Encode(); 
 		
-		for(Task task : tasks) {
-			
-			act_pickup = new cAction();
-			act_delivery = new cAction();
-			
-			act_pickup.task = task;
-			act_pickup.type = 0;
-			act_delivery.task = task;
-			act_delivery.type = 1;
-			
-			if(capacity - task.weight < 0) {
-				id ++;
-				v = vehicles.get(id);
-				capacity = v.capacity();
-				aEncode.nextActions.put(temp, null);
-				temp = new cAction();
-			} else {
-				capacity -= task.weight;
-			}
-			
-			if(aEncode.firstActions.get(v) == null) {
-				aEncode.firstActions.put(v, act_pickup);
-			}
-			
-			aEncode.nextActions.put(act_pickup, act_delivery);					// next action of pickup is delivery
-			
-			if(temp.task != null) {
-				aEncode.nextActions.put(temp, act_pickup); 	// Store last loop's delivery with this loops's pickup 
-			}
-			
-			temp = act_delivery;
-			
-			// all actions are assigned to one vehicle
-			
-			aEncode.Time.put(act_pickup,2*count + 1);			// time sequence for pickup task
-			aEncode.Time.put(act_delivery,2*count + 2);			// time sequence for delivery task = corresponding pickup + 1
-			count++;
-			
-			aEncode.carriedBy.put(act_pickup, v);
-			aEncode.carriedBy.put(act_delivery, v);
+		for(Vehicle vehicle : vehicles) {
+			capacities.put(vehicle, vehicle.capacity());
 		}
 		
-		aEncode.nextActions.put(act_delivery, null);
+		
+		for(Vehicle v1: vehicles) {
+			cAction temp = new cAction();
+			for(Task task : tasks) {
+				if(task.pickupCity.equals(v1.getCurrentCity()) && (capacities.get(v1) - task.weight > 0)) {
+					int preCapacity = capacities.get(v1);
+					capacities.put(v1, preCapacity - task.weight);
+					
+					cAction act_pickup = new cAction();
+					cAction act_delivery = new cAction();
+					
+					act_pickup.task = task;
+					act_pickup.type = 0;
+					act_delivery.task = task;
+					act_delivery.type = 1;
+					
+					picked.add(task);
+					
+					if(aEncode.firstActions.get(v1) == null) {
+						aEncode.firstActions.put(v1, act_pickup);
+					}
+					
+					aEncode.nextActions.put(act_pickup, act_delivery);
+					lastAction.put(v1, act_delivery);
+					
+					if(temp.task != null) {
+						aEncode.nextActions.put(temp, act_pickup); 	// Store last loop's delivery with this loops's pickup 
+					}
+					
+					temp = act_delivery;
+				}
+			}
+		}
+		
+		for(Vehicle v2: vehicles) {
+			cAction temp = new cAction();
+			boolean sign = true;
+			for(Task task : tasks) {
+				if(!picked.contains(task) && capacities.get(v2) - task.weight > 0) {
+					int preCapacity = capacities.get(v2);
+					capacities.put(v2, preCapacity - task.weight);
+					
+					cAction act_pickup = new cAction();
+					cAction act_delivery = new cAction();
+					
+					act_pickup.task = task;
+					act_pickup.type = 0;
+					act_delivery.task = task;
+					act_delivery.type = 1;
+					
+					picked.add(task);
+					
+					if(aEncode.firstActions.get(v2) == null) {
+						aEncode.firstActions.put(v2, act_pickup);
+					}
+					
+					if (sign && lastAction.get(v2) != null) {
+						aEncode.nextActions.put(lastAction.get(v2), act_pickup);
+						sign = false;
+					}
+					
+					aEncode.nextActions.put(act_pickup, act_delivery);
+					
+					if(temp.task != null) {
+						aEncode.nextActions.put(temp, act_pickup); 	// Store last loop's delivery with this loops's pickup 
+					}
+					temp = act_delivery;
+				}
+			}
+		}
 		return aEncode;
 	}
 	
@@ -87,51 +115,57 @@ public class CSP{
 		aNew = aVector;
 		int iteration = 0;
 		
-		while(iteration <= 10000){
+		while(iteration < 10000){
 			aOld = aNew;
 			newNeighbors = ChooseNeighbors(aOld);
-			
-			aNew = LocalChoice(newNeighbors, vehicles, tasks);
+			Random randomGenerator = new Random();
+			int samplespace = randomGenerator.nextInt(10);
+			if (samplespace <= 4) {
+				aNew = LocalChoice(newNeighbors, vehicles, tasks);
+			}
 			iteration++;
 		}
+		
 		return aNew; 
 	}
 	
 	public HashSet<Encode> ChooseNeighbors(Encode aVector){
 		
 		HashSet<Encode> aSet = new HashSet<Encode>();
-		Vehicle currentVehicle;
+		Vehicle currentVehicle = null;
 		List<cAction> actionList = new ArrayList<cAction>();
+		int limit = 200;
 		
-		while(true) {
-			Random randomGenerator = new Random();
-			int randomInt = randomGenerator.nextInt(vehicles.size());
-			currentVehicle = vehicles.get(randomInt);
-			if (aVector.firstActions.get(currentVehicle) != null){
-				break;
+		while(limit > 0) {
+			actionList = new ArrayList<cAction>();
+			while(true) {
+				Random randomGenerator = new Random();
+				int randomInt = randomGenerator.nextInt(vehicles.size());
+				currentVehicle = vehicles.get(randomInt);
+				if (aVector.firstActions.get(currentVehicle) != null){
+					break;
+				}
 			}
-		}
-		
-		cAction action = aVector.firstActions.get(currentVehicle);
-		
-		while (action != null){
-			actionList.add(action);
-			action = aVector.nextActions.get(action);
-		}
-		
-
-		
-		for (Vehicle v : vehicles) {
-			if (!v.equals(currentVehicle) ) {
-				Task t = aVector.firstActions.get(currentVehicle).task;
-				if (t.weight <= v.capacity()) {
-					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
-					if(aChangeV != null) {
-//						displayEncode(aChangeV);
-						aSet.add(aChangeV);			
+			
+			cAction action = aVector.firstActions.get(currentVehicle);
+			
+			while (action != null){
+				actionList.add(action);
+				action = aVector.nextActions.get(action);
+			}
+			
+			for (Vehicle v : vehicles) {
+				if (!v.equals(currentVehicle) ) {
+					Task t = aVector.firstActions.get(currentVehicle).task;
+					if (t.weight <= v.capacity()) {
+						Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
+						if(aChangeV != null) {
+							aSet.add(aChangeV);
+						}
 					}
 				}
 			}
+			limit --;
 		}
 		
 //		System.out.println("Finished change vehicle");
@@ -144,7 +178,6 @@ public class CSP{
 					} 
 					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
 					if(aChangedT != null) {
-//						displayEncode(aChangedT);
 						aSet.add(aChangedT);			
 					}
 
@@ -158,20 +191,25 @@ public class CSP{
 		
 		double optimalCost = 0;
 		double tempCost;
+
 		Encode optimal = null;
 		for(Encode neighbor : aSet) {  
-			optimalCost = computeCost(neighbor, vehicles, tasks);	          // set the first neighbor as the optimal solution	
+			optimal = neighbor;
+			optimalCost = computeCost(neighbor);	          // set the first neighbor as the optimal solution	
 			break;
 		}
+	
 		
 		for(Encode neighbor : aSet) {                         // compute the optimal cost and optimal solution 
-			tempCost = computeCost(neighbor, vehicles, tasks);
-			if (optimalCost >= tempCost){
+			tempCost = computeCost(neighbor);
+			if (tempCost < optimalCost){
 				optimalCost = tempCost;
 				optimal = neighbor;
 			}
 		}
+		
 		return optimal;
+		
 		
 	}
 	
@@ -182,8 +220,8 @@ public class CSP{
 		
 		if(aVector.nextActions.get(p1).task.equals(p1.task)) {
 			cAction d1 = aVector.nextActions.get(p1);
-			cAction p2 = aVector.nextActions.get(d1);
-			changed.firstActions.put(vi, p2);
+			cAction d1Post = aVector.nextActions.get(d1);
+			changed.firstActions.put(vi, d1Post);
 			changed.nextActions.put(d1, aVector.firstActions.get(vj));
 			changed.firstActions.put(vj, p1);
 		} else {
@@ -206,7 +244,6 @@ public class CSP{
 		}
 //		UpdateTime();
 //		UpdateTime();
-		
 		return changed;
 	}
 	
@@ -229,7 +266,7 @@ public class CSP{
 		/*Situation 2*/
 		else if(a1.type == PICKUP && a2.type == DELIVERY) {
 			for(int i = id1 + 1; i <= id2; i++) {
-				if(actionList.get(i).task.equals(a1.task)) {
+				if(actionList.get(i).task.equals(a2.task)) {
 					return null;
 				}
 			}
@@ -304,20 +341,23 @@ public class CSP{
 				reEncode.nextActions.put(a1, a2Post);
 			}
 		}
-	
 		return reEncode;
 	}
 	
-	public double computeCost(Encode neighbor, List<Vehicle> vehicles, TaskSet tasks){
-
-		double cost = 0;		
+	public double computeCost(Encode neighbor) {
+		
+		double cost = 0;
+		
+//		if(neighbor.firstActions.get(vehicles.get(3)) != null ) {
+//			this.displayEncode(neighbor);
+//		}
 		
 		for (Vehicle v : vehicles){
 			
-			cAction nextAct = neighbor.firstActions.get(v);			
+			cAction nextAct = neighbor.firstActions.get(v);
 			City currentCity = v.getCurrentCity();
 			while(nextAct != null) {
-				if (nextAct.type == 0){   									// next action is pickup				
+				if (nextAct.type == 0) {							// next action is pickup				
 					cost = cost + currentCity.distanceTo(nextAct.task.pickupCity) * v.costPerKm();
 					currentCity = nextAct.task.pickupCity;
 					nextAct = neighbor.nextActions.get(nextAct);
@@ -329,6 +369,8 @@ public class CSP{
 				}
 			}
 		}
+		
+//		System.out.println(cost);
 		return cost;
 	}
 	
@@ -342,25 +384,38 @@ public class CSP{
 			cAction firstAct, nextAct;
 			
 			firstAct = optimalA.firstActions.get(v);
-			plan.appendMove(firstAct.task.pickupCity);								// move to first city
-			plan.appendPickup(firstAct.task);
 			
-			nextAct = optimalA.nextActions.get(firstAct);							// next action of first action
+			if(firstAct != null ) {
+				for(City city : current.pathTo(firstAct.task.pickupCity)) {
+					plan.appendMove(city);
+				}
+				plan.appendPickup(firstAct.task);
 			
-			while(nextAct != null){
-				
-				if (nextAct.type == 0){       										// next action is pickup
-					plan.appendMove(nextAct.task.pickupCity);
-					plan.appendPickup(nextAct.task);
-					nextAct = optimalA.nextActions.get(nextAct);
+			
+				nextAct = optimalA.nextActions.get(firstAct);							// next action of first action
+				current = firstAct.task.pickupCity;
+				while(nextAct != null){
+					if (nextAct.type == 0){       									
+						for(City city : current.pathTo(nextAct.task.pickupCity)) {
+							plan.appendMove(city);	
+						}
+						plan.appendPickup(nextAct.task);
+						current = nextAct.task.pickupCity;
+						nextAct = optimalA.nextActions.get(nextAct); 
+					}
+					else{																// next action is delivery
+						for(City city : current.pathTo(nextAct.task.deliveryCity)) {
+							plan.appendMove(city);	
+						}
+						plan.appendDelivery(nextAct.task);
+						current = nextAct.task.deliveryCity;
+						nextAct = optimalA.nextActions.get(nextAct);
+					}
 				}
-				else{																// next action is delivery
-					plan.appendMove(nextAct.task.deliveryCity);
-					plan.appendDelivery(nextAct.task);
-					nextAct = optimalA.nextActions.get(nextAct);
-				}
+				plans.add(plan);
+			} else {
+				plans.add(plan);
 			}
-			plans.add(plan);
 		}
 		return plans;
 	}
@@ -401,11 +456,12 @@ public class CSP{
 	
 	public void displayEncode(Encode encode ) {
 		for(Vehicle v : this.vehicles) {
+			System.out.println(this.vehicles.indexOf(v));
 			cAction a = encode.firstActions.get(v);
 			System.out.print("vehicle" + v.id() + ":" );
 			while (a != null) {
 				if(a.type == PICKUP) {
-					System.out.print("p" + a.task.id + "----->");	
+					System.out.print("p" + a.task.id + "----->");
 				} else {
 					System.out.print("d" + a.task.id + "----->");	
 				}
