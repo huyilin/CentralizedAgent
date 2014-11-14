@@ -40,7 +40,7 @@ public class CSP{
 		for(Vehicle v1: vehicles) {
 			cAction temp = new cAction();
 			for(Task task : tasks) {
-				if(task.pickupCity.equals(v1.getCurrentCity()) && (capacities.get(v1) - task.weight > 0)) {
+				if(task.pickupCity.equals(v1.getCurrentCity()) && (capacities.get(v1) - task.weight >= 0)) {
 					int preCapacity = capacities.get(v1);
 					capacities.put(v1, preCapacity - task.weight);
 					
@@ -74,7 +74,7 @@ public class CSP{
 			cAction temp = new cAction();
 			boolean sign = true;
 			for(Task task : tasks) {
-				if(!picked.contains(task) && capacities.get(v2) - task.weight > 0) {
+				if(!picked.contains(task) && capacities.get(v2) - task.weight >= 0) {
 					int preCapacity = capacities.get(v2);
 					capacities.put(v2, preCapacity - task.weight);
 					
@@ -134,7 +134,7 @@ public class CSP{
 		HashSet<Encode> aSet = new HashSet<Encode>();
 		Vehicle currentVehicle = null;
 		List<cAction> actionList = new ArrayList<cAction>();
-		int limit = 200;
+		int limit = 20;
 		
 		while(limit > 0) {
 			actionList = new ArrayList<cAction>();
@@ -156,12 +156,9 @@ public class CSP{
 			
 			for (Vehicle v : vehicles) {
 				if (!v.equals(currentVehicle) ) {
-					Task t = aVector.firstActions.get(currentVehicle).task;
-					if (t.weight <= v.capacity()) {
-						Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v);
-						if(aChangeV != null) {
-							aSet.add(aChangeV);
-						}
+					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v, actionList);
+					if(aChangeV != null) {
+						aSet.add(aChangeV);
 					}
 				}
 			}
@@ -207,44 +204,91 @@ public class CSP{
 				optimal = neighbor;
 			}
 		}
-		
 		return optimal;
-		
 		
 	}
 	
-	public Encode ChangeVehicle(Encode aVector, Vehicle vi, Vehicle vj){
+	private int findFinalPre(Encode aVector, Vehicle vi, List<cAction> actionList) {
+		for(int i = actionList.size() -1; i > 0 ; i--) {
+			if(actionList.get(i).type == PICKUP) {
+				return i;
+			}
+		}
+		return 0;
+	}
+	
+	public Encode ChangeVehicle(Encode aVector, Vehicle vi, Vehicle vj, List<cAction> actionList){
 		
 		Encode changed = new Encode(aVector);
-		cAction p1 = aVector.firstActions.get(vi); //get vi's first Action
+		int finalPick = findFinalPre(aVector, vi, actionList);
+		cAction p1 = actionList.get(finalPick);
+		cAction d1;
+		if(finalPick == 0) {
+			if(aVector.nextActions.get(p1).task.equals(p1.task)) {
+				d1 = aVector.nextActions.get(p1);
+				cAction d1Post = aVector.nextActions.get(d1);
+				changed.firstActions.put(vi, d1Post);
+			} else {
+				d1 = p1;
+				cAction d1Pre = p1;
+				cAction p1Post = aVector.nextActions.get(p1);
+				while (true) {
+					d1 = aVector.nextActions.get(d1Pre);
+					if(d1.task.equals(p1.task)) {
+						break;
+					} else {
+						d1Pre = d1;
+					}
+				}
+				cAction d1Post = aVector.nextActions.get(d1);
+				changed.firstActions.put(vi, p1Post);
+				changed.nextActions.put(d1Pre, d1Post);
+			}
+		} else{
+			if(aVector.nextActions.get(p1).task.equals(p1.task)) {
+				d1 = aVector.nextActions.get(p1);
+				cAction d1Post = aVector.nextActions.get(d1);
+				cAction p1Pre = actionList.get(finalPick - 1);
+				changed.nextActions.put(p1Pre, d1Post);
+			} else {
+				d1 = p1;
+				cAction d1Pre = p1;
+				cAction p1Pre = actionList.get(finalPick - 1);
+				cAction p1Post = aVector.nextActions.get(p1);
+				while (true) {
+					d1 = aVector.nextActions.get(d1Pre);
+					if(d1.task.equals(p1.task)) {
+						break;
+					} else {
+						d1Pre = d1;
+					}
+				}
+				cAction d1Post = aVector.nextActions.get(d1);
+				changed.nextActions.put(p1Pre, p1Post);
+				changed.nextActions.put(d1Pre, d1Post);
+			}
+		}
 		
-		if(aVector.nextActions.get(p1).task.equals(p1.task)) {
-			cAction d1 = aVector.nextActions.get(p1);
-			cAction d1Post = aVector.nextActions.get(d1);
-			changed.firstActions.put(vi, d1Post);
-			changed.nextActions.put(d1, aVector.firstActions.get(vj));
+		cAction vjtail = changed.firstActions.get(vj);
+		while (true) {
+			if(changed.nextActions.get(vjtail) == null) {
+				break;
+			}
+			vjtail = changed.nextActions.get(vjtail);
+		}
+		
+		if(changed.firstActions.get(vj) == null) {
 			changed.firstActions.put(vj, p1);
 		} else {
-			cAction d1 = p1;
-			cAction d1Pre = p1;
-			
-			while (true) {
-				d1 = aVector.nextActions.get(d1Pre);
-				if(d1.task.equals(p1.task)) {
-					break;
-				} else {
-					d1Pre = d1;
-				}
-			}
-			changed.firstActions.put(vi, aVector.nextActions.get(p1));
-			changed.nextActions.put(d1Pre, aVector.nextActions.get(d1));
-			changed.firstActions.put(vj, p1);
-			changed.nextActions.put(p1, d1);
-			changed.nextActions.put(d1, aVector.firstActions.get(vj));
+			changed.nextActions.put(vjtail, p1);
 		}
-//		UpdateTime();
-//		UpdateTime();
-		return changed;
+		
+		changed.nextActions.put(p1, d1);
+		changed.nextActions.put(d1, null);
+		
+		if(p1.task.weight > vj.capacity()) {
+			return null;
+		} else return changed;
 	}
 	
 	public Encode ChangeTaskOrder(Encode aVector, Vehicle v, int id1, int id2, List<cAction> actionList) {
@@ -456,7 +500,6 @@ public class CSP{
 	
 	public void displayEncode(Encode encode ) {
 		for(Vehicle v : this.vehicles) {
-			System.out.println(this.vehicles.indexOf(v));
 			cAction a = encode.firstActions.get(v);
 			System.out.print("vehicle" + v.id() + ":" );
 			while (a != null) {
