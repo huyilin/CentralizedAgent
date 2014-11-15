@@ -170,7 +170,7 @@ public class CSP{
 		if (actionList.size() >= 2){
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
 				for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
-					if(actionList.get(id2).task.equals(actionList.get(id1).task)) {
+					if(actionList.get(id2).task.equals(actionList.get(id1).task) && actionList.get(id1).type == PICKUP) {
 						break;
 					} 
 					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
