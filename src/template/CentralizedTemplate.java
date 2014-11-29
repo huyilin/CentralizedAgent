@@ -52,7 +52,7 @@ public class CentralizedTemplate implements CentralizedBehavior {
 		csp.displayEncode(Aoptimal);
 		System.out.print(csp.computeCost(Aoptimal));
 
-		List<Plan> optimalPlans = csp.computePlan(Aoptimal);		
+		List<Plan> optimalPlans = csp.computePlan(Aoptimal);
 		return optimalPlans;
 	}
 }
