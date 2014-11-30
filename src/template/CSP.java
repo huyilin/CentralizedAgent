@@ -94,7 +94,6 @@ public class CSP{
 				break;
 			}
 		}
-
 		return aEncode;
 	}
 	
@@ -104,12 +103,11 @@ public class CSP{
 		aNew = aVector;
 		int iteration = 0;
 		Random randomGenerator = new Random();
-
 		while(iteration < 40000){
 			aOld = aNew;
 			newNeighbors = ChooseNeighbors(aOld);
 			int samplespace = randomGenerator.nextInt(100);
-			if (samplespace <= 35) {
+			if (samplespace <= 20) {
 				aNew = LocalChoice(newNeighbors, vehicles, tasks);
 			}
 			iteration++;
