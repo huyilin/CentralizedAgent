@@ -28,6 +28,7 @@ public class CSP{
 		HashMap<Vehicle, Integer> capacities= new HashMap<Vehicle, Integer> ();
 		HashMap<Vehicle, cAction> lastAction = new HashMap<Vehicle, cAction> ();
 		Encode aEncode = new Encode();
+		HashSet<Task> picked = new HashSet<Task> ();
 		
 		
 		for(Vehicle vehicle : vehicles) {
@@ -36,8 +37,39 @@ public class CSP{
 
 		Random randomGenerator = new Random();
 
+		for(Vehicle v1: vehicles) {
+			cAction temp = new cAction();
+			for(Task task : tasks) {
+				if(task.pickupCity.equals(v1.getCurrentCity()) && (capacities.get(v1) - task.weight >= 0)) {
+					
+					cAction act_pickup = new cAction();
+					cAction act_delivery = new cAction();
+					
+					act_pickup.task = task;
+					act_pickup.type = 0;
+					act_delivery.task = task;
+					act_delivery.type = 1;
+					
+					picked.add(task);
+					
+					if(aEncode.firstActions.get(v1) == null) {
+						aEncode.firstActions.put(v1, act_pickup);
+					}
+					
+					aEncode.nextActions.put(act_pickup, act_delivery);
+					lastAction.put(v1, act_delivery);
+					
+					if(temp.task != null) {
+						aEncode.nextActions.put(temp, act_pickup); 	// Store last loop's delivery with this loops's pickup 
+					}
+					
+					temp = act_delivery;
+				}
+			}
+		}
+
 		for(Task task : tasks) {
-			while (true) {
+			while (true && !picked.contains(task)) {
 				int rand = randomGenerator.nextInt(vehicles.size()); 
 				if(vehicles.get(rand).capacity() >= task.weight) {
 					Vehicle v = vehicles.get(rand);
@@ -62,6 +94,7 @@ public class CSP{
 				break;
 			}
 		}
+
 		return aEncode;
 	}
 	
@@ -72,11 +105,11 @@ public class CSP{
 		int iteration = 0;
 		Random randomGenerator = new Random();
 
-		while(iteration < 10000){
+		while(iteration < 40000){
 			aOld = aNew;
 			newNeighbors = ChooseNeighbors(aOld);
 			int samplespace = randomGenerator.nextInt(100);
-			if (samplespace <= 40) {
+			if (samplespace <= 35) {
 				aNew = LocalChoice(newNeighbors, vehicles, tasks);
 			}
 			iteration++;
@@ -88,55 +121,72 @@ public class CSP{
 	public HashSet<Encode> ChooseNeighbors(Encode aVector){
 		
 		HashSet<Encode> aSet = new HashSet<Encode>();
+		List<Encode> tempSet = new ArrayList<Encode>();
 		Vehicle currentVehicle = null;
 		List<cAction> actionList = new ArrayList<cAction>();
-		int limit = 200;
+		int limit = 1;
+		Encode randEncode = null;
+		boolean sign = true;
 		
 		while(limit > 0) {
 			actionList = new ArrayList<cAction>();
 			Random randomGenerator = new Random();
+			
+			if(sign) {
+					randEncode = aVector;
+					sign = false;
+			} else {
+					int rand1 = randomGenerator.nextInt(tempSet.size());
+					randEncode = tempSet.get(rand1);
+					tempSet = new ArrayList<Encode>();
+			}
+
 			while(true) {
-				int randomInt = randomGenerator.nextInt(vehicles.size());
-				currentVehicle = vehicles.get(randomInt);
-				if (aVector.firstActions.get(currentVehicle) != null){
+				int rand2 = randomGenerator.nextInt(vehicles.size());
+				currentVehicle = vehicles.get(rand2);
+				if (randEncode.firstActions.get(currentVehicle) != null) {
 					break;
 				}
 			}
 			
-			cAction action = aVector.firstActions.get(currentVehicle);
+			cAction action = randEncode.firstActions.get(currentVehicle);
 			
-			while (action != null){
+			while (action != null) {
 				actionList.add(action);
-				action = aVector.nextActions.get(action);
+				action = randEncode.nextActions.get(action);
 			}
 			
 			for (Vehicle v : vehicles) {
 				if (!v.equals(currentVehicle) ) {
-					Encode aChangeV = ChangeVehicle(aVector, currentVehicle, v, actionList);
+//					System.out.println("original");
+//					this.displayEncode(randEncode);
+//					System.out.println(currentVehicle.id()+ "--------->" + v.id());
+					Encode aChangeV = ChangeVehicle(randEncode, currentVehicle, v, actionList);
 					if(aChangeV != null) {
 						aSet.add(aChangeV);
+//						this.displayEncode(aChangeV);
+						tempSet.add(aChangeV);
 					}
 				}
 			}
 			limit --;
 		}
 		
-//		System.out.println("Finished change vehicle");
 		
-		if (actionList.size() >= 2){
+		if (actionList.size() >= 2) {
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
 				for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
 					if(actionList.get(id2).task.equals(actionList.get(id1).task) && actionList.get(id1).type == PICKUP) {
 						break;
 					}
-					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
+					Encode aChangedT = ChangeTaskOrder(randEncode, currentVehicle, id1, id2, actionList);
 					if(aChangedT != null) {
-						aSet.add(aChangedT);			
+						aSet.add(aChangedT);
 					}
-
 				}
 			}
 		}
+		
 		return aSet;
 	}
 	
@@ -174,7 +224,6 @@ public class CSP{
 	}
 	
 	public Encode ChangeVehicle(Encode aVector, Vehicle vi, Vehicle vj, List<cAction> actionList){
-		
 		Encode changed = new Encode(aVector);
 		int finalPick = findFinalPre(aVector, vi, actionList);
 		cAction p1 = actionList.get(finalPick);
@@ -225,22 +274,11 @@ public class CSP{
 			}
 		}
 		
-		cAction vjtail = changed.firstActions.get(vj);
-		while (true) {
-			if(changed.nextActions.get(vjtail) == null) {
-				break;
-			}
-			vjtail = changed.nextActions.get(vjtail);
-		}
+		cAction vjFirst = aVector.firstActions.get(vj);
 		
-		if(changed.firstActions.get(vj) == null) {
-			changed.firstActions.put(vj, p1);
-		} else {
-			changed.nextActions.put(vjtail, p1);
-		}
-		
+		changed.firstActions.put(vj, p1);
 		changed.nextActions.put(p1, d1);
-		changed.nextActions.put(d1, null);
+		changed.nextActions.put(d1, vjFirst);
 		
 		if(p1.task.weight > vj.capacity()) {
 			return null;
@@ -455,6 +493,7 @@ public class CSP{
 	
 	
 	public void displayEncode(Encode encode ) {
+		
 		for(Vehicle v : this.vehicles) {
 			cAction a = encode.firstActions.get(v);
 			System.out.print("vehicle" + v.id() + ":" );
