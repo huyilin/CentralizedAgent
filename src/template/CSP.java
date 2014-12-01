@@ -18,10 +18,12 @@ public class CSP{
 	private List<Vehicle> vehicles; 
 	private TaskSet tasks;
 	private ArrayList<Encode> recording = new ArrayList<Encode>();
-	private int iteration = 100000;
-	private int p1 = 20;
-	private int p2 = 95;
-	private int inner_iter = 2;
+	private int iteration = 50000;
+	private int p1 = 10;
+	private int steps = 150;
+	private int inner_iter = 10;
+	
+	
 	public CSP(List<Vehicle> vehicles, TaskSet tasks) {
 		this.vehicles = vehicles;
 		this.tasks = tasks;
@@ -109,6 +111,7 @@ public class CSP{
 
 		Random randGen = new Random();
 		int iter = 0;
+		int step = this.steps;
 		aNew = aVector;
 		aOld = aNew;
 
@@ -118,14 +121,16 @@ public class CSP{
 			aNew = LocalChoice(newNeighbors, vehicles, tasks);
 			if (samplespace <= p1) {
 				recording.add(aNew);
-			} else if(samplespace > p1 && samplespace <= p2) {
+			} else if(step > 0) {
 				recording.add(aNew);
 				aOld = aNew;
-			} else {
+				step--;
+			} else if(step == 0) {
 				recording.add(aNew);
 				aOld = recording.get(randGen.nextInt(recording.size()));
+				step = this.steps;
 			}
-			iteration++;
+			iter++;
 		}
 		return findMiniCost(recording); 
 	}
