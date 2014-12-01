@@ -17,7 +17,8 @@ public class CSP{
 	public static final int DELIVERY = 1;
 	private List<Vehicle> vehicles; 
 	private TaskSet tasks;
-	
+	private ArrayList<Encode> recording = new ArrayList<Encode>();
+
 	public CSP(List<Vehicle> vehicles, TaskSet tasks) {
 		this.vehicles = vehicles;
 		this.tasks = tasks;
@@ -94,26 +95,48 @@ public class CSP{
 				break;
 			}
 		}
+		aEncode.cost = this.computeCost(aEncode);
+		recording.add(aEncode);
 		return aEncode;
 	}
 	
-	public Encode SLS(Encode aVector){
+	public Encode SLS(Encode aVector) {
 		Encode aOld, aNew;
 		HashSet <Encode> newNeighbors = new HashSet<Encode>();
-		aNew = aVector;
 		int iteration = 0;
-		Random randomGenerator = new Random();
-		while(iteration < 40000){
-			aOld = aNew;
+		int p1 = 20;
+		int p2 = 97;
+		Random randGen = new Random();
+
+		aNew = aVector;
+		aOld = aNew;
+
+		while(iteration < 1) {
 			newNeighbors = ChooseNeighbors(aOld);
-			int samplespace = randomGenerator.nextInt(100);
-			if (samplespace <= 20) {
-				aNew = LocalChoice(newNeighbors, vehicles, tasks);
+			int samplespace = randGen.nextInt(100);
+			aNew = LocalChoice(newNeighbors, vehicles, tasks);
+			if (samplespace <= p1) {
+				recording.add(aNew);
+			} else if(samplespace > p1 && samplespace <= p2) {
+				recording.add(aNew);
+				aOld = aNew;
+			} else {
+				recording.add(aNew);
+				aOld = recording.get(randGen.nextInt(recording.size()));
 			}
 			iteration++;
 		}
-		
-		return aNew; 
+		return findMiniCost(recording); 
+	}
+
+	private Encode findMiniCost(ArrayList<Encode> recording) {
+		Encode Aoptimal = recording.get(0);
+		for (Encode aVector : recording) {
+			if (aVector.cost < Aoptimal.cost) {
+				Aoptimal = aVector;
+			}
+		}
+		return Aoptimal;
 	}
 	
 	public HashSet<Encode> ChooseNeighbors(Encode aVector){
@@ -122,7 +145,7 @@ public class CSP{
 		List<Encode> tempSet = new ArrayList<Encode>();
 		Vehicle currentVehicle = null;
 		List<cAction> actionList = new ArrayList<cAction>();
-		int limit = 1;
+		int limit = 2;
 		Encode randEncode = null;
 		boolean sign = true;
 		
@@ -162,7 +185,7 @@ public class CSP{
 					Encode aChangeV = ChangeVehicle(randEncode, currentVehicle, v, actionList);
 					if(aChangeV != null) {
 						aSet.add(aChangeV);
-//						this.displayEncode(aChangeV);
+						this.displayEncode(aChangeV);
 						tempSet.add(aChangeV);
 					}
 				}
@@ -188,7 +211,7 @@ public class CSP{
 		return aSet;
 	}
 	
-	public Encode LocalChoice(HashSet<Encode> aSet, List<Vehicle> vehicles, TaskSet tasks){
+	public Encode LocalChoice(HashSet<Encode> aSet, List<Vehicle> vehicles, TaskSet tasks) {
 		
 		double optimalCost = 0;
 		double tempCost;
@@ -208,6 +231,7 @@ public class CSP{
 				optimal = neighbor;
 			}
 		}
+		optimal.cost = optimalCost;
 		return optimal;
 		
 	}
@@ -221,7 +245,7 @@ public class CSP{
 		return 0;
 	}
 	
-	public Encode ChangeVehicle(Encode aVector, Vehicle vi, Vehicle vj, List<cAction> actionList){
+	public Encode ChangeVehicle(Encode aVector, Vehicle vi, Vehicle vj, List<cAction> actionList) {
 		Encode changed = new Encode(aVector);
 		int finalPick = findFinalPre(aVector, vi, actionList);
 		cAction p1 = actionList.get(finalPick);

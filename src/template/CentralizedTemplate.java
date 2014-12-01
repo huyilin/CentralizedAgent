@@ -32,7 +32,6 @@ public class CentralizedTemplate implements CentralizedBehavior {
 	@Override
 	public void setup(Topology topology, TaskDistribution distribution,
 			Agent agent) {
-
 		this.topology = topology;
 		this.distribution = distribution;
 		this.agent = agent;
@@ -50,7 +49,8 @@ public class CentralizedTemplate implements CentralizedBehavior {
 		Encode Aoptimal = csp.SLS(Aold);
 		
 		csp.displayEncode(Aoptimal);
-		System.out.print(csp.computeCost(Aoptimal));
+		System.out.println(Aoptimal.cost);
+		//System.out.print(csp.computeCost(Aoptimal));
 
 		List<Plan> optimalPlans = csp.computePlan(Aoptimal);
 		return optimalPlans;
