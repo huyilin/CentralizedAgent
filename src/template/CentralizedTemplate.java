@@ -44,7 +44,7 @@ public class CentralizedTemplate implements CentralizedBehavior {
 		Encode Aold = csp.Initialize();
 		
 		csp.displayEncode(Aold);
-		System.out.print(csp.computeCost(Aold));
+		System.out.println(csp.computeCost(Aold));
 		
 		Encode Aoptimal = csp.SLS(Aold);
 		

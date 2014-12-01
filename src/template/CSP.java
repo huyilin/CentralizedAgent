@@ -18,7 +18,10 @@ public class CSP{
 	private List<Vehicle> vehicles; 
 	private TaskSet tasks;
 	private ArrayList<Encode> recording = new ArrayList<Encode>();
-
+	private int iteration = 100000;
+	private int p1 = 20;
+	private int p2 = 95;
+	private int inner_iter = 2;
 	public CSP(List<Vehicle> vehicles, TaskSet tasks) {
 		this.vehicles = vehicles;
 		this.tasks = tasks;
@@ -103,15 +106,13 @@ public class CSP{
 	public Encode SLS(Encode aVector) {
 		Encode aOld, aNew;
 		HashSet <Encode> newNeighbors = new HashSet<Encode>();
-		int iteration = 0;
-		int p1 = 20;
-		int p2 = 97;
-		Random randGen = new Random();
 
+		Random randGen = new Random();
+		int iter = 0;
 		aNew = aVector;
 		aOld = aNew;
 
-		while(iteration < 1) {
+		while(iter < iteration) {
 			newNeighbors = ChooseNeighbors(aOld);
 			int samplespace = randGen.nextInt(100);
 			aNew = LocalChoice(newNeighbors, vehicles, tasks);
@@ -145,7 +146,7 @@ public class CSP{
 		List<Encode> tempSet = new ArrayList<Encode>();
 		Vehicle currentVehicle = null;
 		List<cAction> actionList = new ArrayList<cAction>();
-		int limit = 2;
+		int limit = inner_iter;
 		Encode randEncode = null;
 		boolean sign = true;
 		
@@ -177,15 +178,18 @@ public class CSP{
 				action = randEncode.nextActions.get(action);
 			}
 			
+//			System.out.println("From vehicle: " + currentVehicle.id() + " to the following");
+//			System.out.println("original");
+//			this.displayEncode(randEncode);
+			
 			for (Vehicle v : vehicles) {
 				if (!v.equals(currentVehicle) ) {
-//					System.out.println("original");
-//					this.displayEncode(randEncode);
+					
 //					System.out.println(currentVehicle.id()+ "--------->" + v.id());
 					Encode aChangeV = ChangeVehicle(randEncode, currentVehicle, v, actionList);
 					if(aChangeV != null) {
 						aSet.add(aChangeV);
-						this.displayEncode(aChangeV);
+//						this.displayEncode(aChangeV);
 						tempSet.add(aChangeV);
 					}
 				}
@@ -193,6 +197,12 @@ public class CSP{
 			limit --;
 		}
 		
+		cAction action = aVector.firstActions.get(currentVehicle);
+		actionList = new ArrayList<cAction>();
+		while (action != null) {
+			actionList.add(action);
+			action = aVector.nextActions.get(action);
+		}
 		
 		if (actionList.size() >= 2) {
 			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
@@ -200,7 +210,7 @@ public class CSP{
 					if(actionList.get(id2).task.equals(actionList.get(id1).task) && actionList.get(id1).type == PICKUP) {
 						break;
 					}
-					Encode aChangedT = ChangeTaskOrder(randEncode, currentVehicle, id1, id2, actionList);
+					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
 					if(aChangedT != null) {
 						aSet.add(aChangedT);
 					}
@@ -217,7 +227,7 @@ public class CSP{
 		double tempCost;
 
 		Encode optimal = null;
-		for(Encode neighbor : aSet) {  
+		for(Encode neighbor : aSet) {
 			optimal = neighbor;
 			optimalCost = computeCost(neighbor);	          // set the first neighbor as the optimal solution	
 			break;
