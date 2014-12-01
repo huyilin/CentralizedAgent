@@ -20,7 +20,7 @@ public class CSP{
 	private ArrayList<Encode> recording = new ArrayList<Encode>();
 	private int iteration = 50000;
 	private int p1 = 10;
-	private int steps = 150;
+	private int steps = 50;
 	private int inner_iter = 10;
 	
 	
@@ -148,12 +148,14 @@ public class CSP{
 	public HashSet<Encode> ChooseNeighbors(Encode aVector){
 		
 		HashSet<Encode> aSet = new HashSet<Encode>();
+		
 		List<Encode> tempSet = new ArrayList<Encode>();
 		Vehicle currentVehicle = null;
 		List<cAction> actionList = new ArrayList<cAction>();
 		int limit = inner_iter;
 		Encode randEncode = null;
 		boolean sign = true;
+	
 		
 		while(limit > 0) {
 			actionList = new ArrayList<cAction>();
@@ -189,7 +191,6 @@ public class CSP{
 			
 			for (Vehicle v : vehicles) {
 				if (!v.equals(currentVehicle) ) {
-					
 //					System.out.println(currentVehicle.id()+ "--------->" + v.id());
 					Encode aChangeV = ChangeVehicle(randEncode, currentVehicle, v, actionList);
 					if(aChangeV != null) {
@@ -202,27 +203,30 @@ public class CSP{
 			limit --;
 		}
 		
-		cAction action = aVector.firstActions.get(currentVehicle);
-		actionList = new ArrayList<cAction>();
-		while (action != null) {
-			actionList.add(action);
-			action = aVector.nextActions.get(action);
-		}
+		tempSet.add(aVector);
 		
-		if (actionList.size() >= 2) {
-			for(int id1 = 0; id1 < actionList.size()-1; id1++) {
-				for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
-					if(actionList.get(id2).task.equals(actionList.get(id1).task) && actionList.get(id1).type == PICKUP) {
-						break;
-					}
-					Encode aChangedT = ChangeTaskOrder(aVector, currentVehicle, id1, id2, actionList);
-					if(aChangedT != null) {
-						aSet.add(aChangedT);
+		for(Encode changed : tempSet) {
+			cAction action = changed.firstActions.get(currentVehicle);
+			actionList = new ArrayList<cAction>();
+			while (action != null) {
+				actionList.add(action);
+				action = changed.nextActions.get(action);
+			}
+			
+			if (actionList.size() >= 2) {
+				for(int id1 = 0; id1 < actionList.size()-1; id1++) {
+					for (int id2 = id1 + 1; id2 < actionList.size(); id2++) {
+						if(actionList.get(id2).task.equals(actionList.get(id1).task) && actionList.get(id1).type == PICKUP) {
+							break;
+						}
+						Encode aChangedT = ChangeTaskOrder(changed, currentVehicle, id1, id2, actionList);
+						if(aChangedT != null) {
+							aSet.add(aChangedT);
+						}
 					}
 				}
 			}
 		}
-		
 		return aSet;
 	}
 	
